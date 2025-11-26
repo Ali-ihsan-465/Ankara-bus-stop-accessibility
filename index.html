@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <link rel="stylesheet" href="./resources/ol.css">
+        <link rel="stylesheet" href="resources/fontawesome-all.min.css">
+        <link href="resources/photon-geocoder-autocomplete.min.css" rel="stylesheet">
+        <link rel="stylesheet" href="./resources/ol-layerswitcher.css">
+        <link rel="stylesheet" href="./resources/qgis2web.css">
+        <style>
+        html, body {
+            background-color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+        .ol-control > * {
+            background-color: #f8f8f8!important;
+            color: #444444!important;
+            border-radius: 0px;
+        }
+        .ol-attribution a, .gcd-gl-input::placeholder, .search-layer-input-search::placeholder {
+            color: #444444!important;
+        }
+        .search-layer-input-search {
+            background-color: #f8f8f8!important;
+        }
+        .ol-control > *:focus, .ol-control >*:hover {
+            background-color: rgba(248, 248, 248, 0.7)!important;
+        } 
+        .ol-control {
+            background-color: rgba(255,255,255,.4) !important;
+            padding: 2px !important;
+        } 
+        html, body, #map {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+
+        .tooltip, .qgis2web-tooltip {
+            display: none !important;
+        }
+
+        /* --- SAĞ ÜST PANEL --- */
+        #info-panel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background-color: rgba(30, 30, 30, 0.95);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            width: 260px;
+            border: 1px solid #555;
+            color: #fff;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        #info-panel h2 { margin: 0 0 5px 0; font-size: 15px; color: #fff; text-align: center; font-weight: 700; }
+        #info-panel h3 { margin: 0 0 10px 0; font-size: 11px; color: #bbb; text-align: center; }
+
+        .control-group { margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #555; }
+
+        /* GPS BUTONU */
+        #gps-btn {
+            width: 100%; padding: 10px; background-color: #2196F3; color: white; border: none; border-radius: 5px;
+            cursor: pointer; font-weight: bold; font-size: 13px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px;
+        }
+        .gps-active { background-color: #4CAF50 !important; animation: pulse-btn 2s infinite; }
+        @keyframes pulse-btn { 0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(76, 175, 80, 0); } 100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); } }
+
+        input[type=range] { width: 100%; }
+        #search-input { width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #666; background-color: #444; color: white; box-sizing: border-box; }
+        #stats-row { display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: bold; color: #4CAF50; }
+        #freeze-status { font-size: 10px; color: #ff5252; font-weight: bold; display: none; }
+        
+        .legend-item { display: flex; align-items: center; margin-bottom: 3px; font-size: 10px; color: #ddd; }
+        .legend-color { width: 15px; height: 8px; margin-right: 8px; border: 1px solid #777; }
+
+        /* --- YENİ SOL ALT BİLGİ BUTONU --- */
+        #help-btn {
+            position: absolute;
+            bottom: 25px;
+            left: 25px;
+            z-index: 1000;
+            width: 50px;
+            height: 50px;
+            background-color: #333;
+            color: white;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+        }
+        #help-btn:hover { transform: scale(1.1); background-color: #555; }
+
+        /* --- BİLGİ PENCERESİ (MODAL) --- */
+        #help-modal {
+            display: none; /* Başlangıçta gizli */
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 85%;
+            max-width: 400px;
+            background-color: #fff;
+            color: #333;
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 2000;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        #help-modal h2 { margin-top: 0; color: #2196F3; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        #help-modal ul { padding-left: 20px; }
+        #help-modal li { margin-bottom: 8px; }
+        .close-modal {
+            position: absolute; top: 10px; right: 15px; font-size: 20px; font-weight: bold; cursor: pointer; color: #999;
+        }
+        .close-modal:hover { color: #f00; }
+        
+        /* Arka plan karartma */
+        #modal-overlay {
+            display: none;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); z-index: 1500;
+        }
+
+        </style>
+        <title>Ankara Durak Analizi</title>
+    </head>
+    <body>
+        <div id="map">
+            <div id="popup" class="ol-popup">
+                <a href="#" id="popup-closer" class="ol-popup-closer"></a>
+                <div id="popup-content"></div>
+            </div>
+        </div>
+
+        <div id="help-btn" title="Harita Kullanım Kılavuzu">i</div>
+
+        <div id="modal-overlay"></div>
+        <div id="help-modal">
+            <span class="close-modal">&times;</span>
+            <h2>🗺️ Harita Nasıl Kullanılır?</h2>
+            <ul>
+                <li><strong>🔵 Konum Takibi:</strong> "Konumumu Takip Et" butonuna basarak anlık yerinizi görebilirsiniz.</li>
+                <li><strong>🕷️ Örümcek Ağı:</strong> Sizin (veya mouse'un) etrafındaki duraklara otomatik çizgiler çeker.</li>
+                <li><strong>🎨 Renkler:</strong> Yeşil çizgiler <b>çok yakın</b>, Sarı çizgiler <b>orta</b>, Kırmızı çizgiler <b>uzak</b> mesafeyi gösterir.</li>
+                <li><strong>🎚️ Mesafe Ayarı:</strong> Sağ üstteki sürgü ile 100m - 2000m arası tarama yapabilirsiniz.</li>
+                <li><strong>🚌 Hat Arama:</strong> Kutuya "488" yazarak sadece o hattın duraklarını görebilirsiniz.</li>
+                <li><strong>📍 Sabitleme:</strong> Haritada bir yere tıklarsanız analiz orada donar. Tekrar tıklarsanız çözülür.</li>
+            </ul>
+            <div style="text-align:center; margin-top:15px; font-size:12px; color:#666;">
+                Tasarım: Ankara Ulaşım Analizi v2.0
+            </div>
+        </div>
+
+        <div id="info-panel">
+            <h2>ANKARA DURAK ANALİZİ</h2>
+            <h3>MOBİL NAVİGASYON MODU</h3>
+            
+            <button id="gps-btn">
+                <i class="fas fa-location-arrow" style="margin-right:8px;"></i> KONUMUMU TAKİP ET
+            </button>
+
+            <div class="control-group">
+                <div style="display:flex; justify-content:space-between; font-size:12px; color:#ddd; margin-bottom:5px;">
+                    <span>Mesafe:</span>
+                    <span id="range-val" style="color:#FFFF00">1000 m</span>
+                </div>
+                <input type="range" id="distance-slider" min="100" max="2000" step="100" value="1000">
+            </div>
+
+            <div class="control-group">
+                <input type="text" id="search-input" placeholder="Hat No (Örn: 488)...">
+            </div>
+
+            <div class="control-group" style="border-bottom:none;">
+                <div id="stats-row">
+                    <span>Durak: <span id="count-val" style="color:white; font-size:1.2em;">0</span></span>
+                    <span id="freeze-status">📍 KİLİTLİ</span>
+                </div>
+            </div>
+
+            <hr style="border: 0; border-top: 1px solid #555; margin: 5px 0 10px 0;">
+            <div id="legend-content"></div>
+        </div>
+
+        <script src="resources/qgis2web_expressions.js"></script>
+        <script src="./resources/functions.js"></script>
+        <script src="./resources/ol.js"></script>
+        <script src="./resources/ol-layerswitcher.js"></script>
+        <script src="resources/photon-geocoder-autocomplete.min.js"></script>
+        
+        <script src="layers/ankaradurak_2.js"></script>
+        <script src="styles/ankaradurak_2_style.js"></script>
+        
+        <script src="./layers/layers.js" type="text/javascript"></script> 
+        <script src="./resources/Autolinker.min.js"></script>
+        <script src="./resources/qgis2web.js"></script>        
+
+        <script>
+            document.addEventListener("DOMContentLoaded", function() {
+                
+                // DEĞİŞKENLER
+                var currentMaxDist = 1000;
+                var isFrozen = false;
+                var frozenCoord = null;
+                var filterText = "";
+                var isGpsActive = false;
+                var gpsWatchId = null;
+                var userLocationCoord = null;
+
+                // MODAL (BİLGİ PENCERESİ) İŞLEMLERİ
+                var helpBtn = document.getElementById('help-btn');
+                var helpModal = document.getElementById('help-modal');
+                var overlay = document.getElementById('modal-overlay');
+                var closeBtn = document.querySelector('.close-modal');
+
+                function openModal() { helpModal.style.display = 'block'; overlay.style.display = 'block'; }
+                function closeModal() { helpModal.style.display = 'none'; overlay.style.display = 'none'; }
+
+                helpBtn.addEventListener('click', openModal);
+                closeBtn.addEventListener('click', closeModal);
+                overlay.addEventListener('click', closeModal);
+
+                // RENKLER
+                var colors = [
+                    { range: 100, color: '#006400', label: '0-100m' },
+                    { range: 200, color: '#008000', label: '100-200m' },
+                    { range: 300, color: '#32CD32', label: '200-300m' },
+                    { range: 400, color: '#ADFF2F', label: '300-400m' },
+                    { range: 500, color: '#FFFF00', label: '400-500m' },
+                    { range: 600, color: '#FFD700', label: '500-600m' },
+                    { range: 700, color: '#FFA500', label: '600-700m' },
+                    { range: 800, color: '#FF8C00', label: '700-800m' },
+                    { range: 900, color: '#FF4500', label: '800-900m' },
+                    { range: 2000, color: '#FF0000', label: '>900m' }
+                ];
+
+                // 1. LEJANT
+                var legendContainer = document.getElementById('legend-content');
+                colors.forEach(function(item) {
+                    if(item.range <= 1000) {
+                        var div = document.createElement('div');
+                        div.className = 'legend-item';
+                        div.innerHTML = '<div class="legend-color" style="background:' + item.color + '"></div>' + item.label;
+                        legendContainer.appendChild(div);
+                    }
+                });
+
+                // 2. KATMANLAR
+                var spiderSource = new ol.source.Vector();
+                var spiderLayer = new ol.layer.Vector({
+                    source: spiderSource, map: map, zIndex: 9999,
+                    style: function(feature) {
+                        if (feature.getGeometry().getType() === 'LineString') {
+                            var distance = feature.get('distance');
+                            var selectedColor = '#FF0000';
+                            var width = 1;
+                            for (var i = 0; i < colors.length; i++) {
+                                if (distance <= colors[i].range) {
+                                    selectedColor = colors[i].color;
+                                    width = distance <= 300 ? 3 : (distance <= 600 ? 2 : 1);
+                                    break;
+                                }
+                            }
+                            return new ol.style.Style({ stroke: new ol.style.Stroke({ color: selectedColor, width: width }) });
+                        } else if (feature.getGeometry().getType() === 'Circle') {
+                            return new ol.style.Style({
+                                stroke: new ol.style.Stroke({ color: 'rgba(255, 255, 255, 0.5)', width: 1, lineDash: [5, 5] }),
+                                fill: new ol.style.Fill({ color: 'rgba(255, 255, 255, 0.05)' })
+                            });
+                        }
+                    }
+                });
+
+                var userSource = new ol.source.Vector();
+                var userLayer = new ol.layer.Vector({
+                    source: userSource, map: map, zIndex: 10000,
+                    style: new ol.style.Style({
+                        image: new ol.style.Circle({
+                            radius: 8, fill: new ol.style.Fill({ color: '#4285F4' }),
+                            stroke: new ol.style.Stroke({ color: '#ffffff', width: 3 })
+                        })
+                    })
+                });
+
+                // 3. KONTROLLER
+                var slider = document.getElementById('distance-slider');
+                var rangeLabel = document.getElementById('range-val');
+                var countLabel = document.getElementById('count-val');
+                var searchInput = document.getElementById('search-input');
+                var freezeLabel = document.getElementById('freeze-status');
+                var gpsBtn = document.getElementById('gps-btn');
+
+                slider.addEventListener('input', function() {
+                    currentMaxDist = parseInt(this.value);
+                    rangeLabel.innerHTML = currentMaxDist + " m";
+                    if(isGpsActive && userLocationCoord) runAnalysis(userLocationCoord);
+                    else if(isFrozen && frozenCoord) runAnalysis(frozenCoord);
+                });
+
+                searchInput.addEventListener('input', function() {
+                    filterText = this.value.toLowerCase();
+                    if(isGpsActive && userLocationCoord) runAnalysis(userLocationCoord);
+                    else if(isFrozen && frozenCoord) runAnalysis(frozenCoord);
+                });
+
+                // 4. GELİŞTİRİLMİŞ GPS FONKSİYONU
+                gpsBtn.addEventListener('click', function() {
+                    if (!isGpsActive) {
+                        if ("geolocation" in navigator) {
+                            isGpsActive = true;
+                            gpsBtn.classList.add('gps-active');
+                            gpsBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> KONUM ARANIYOR...';
+                            
+                            isFrozen = false;
+                            freezeLabel.style.display = 'none';
+
+                            gpsWatchId = navigator.geolocation.watchPosition(
+                                function(position) {
+                                    var coords = [position.coords.longitude, position.coords.latitude];
+                                    userLocationCoord = ol.proj.fromLonLat(coords);
+                                    
+                                    userSource.clear();
+                                    userSource.addFeature(new ol.Feature(new ol.geom.Point(userLocationCoord)));
+                                    runAnalysis(userLocationCoord);
+                                    
+                                    gpsBtn.innerHTML = '<i class="fas fa-satellite-dish"></i> TAKİP EDİLİYOR';
+                                },
+                                function(error) {
+                                    alert("HATA: Konum alınamadı.\n1. GPS'in açık olduğundan emin olun.\n2. Siteye 'Konum İzni' verdiğinizi kontrol edin.\n3. Güvenli bağlantı (HTTPS) kullanın.");
+                                    isGpsActive = false;
+                                    gpsBtn.classList.remove('gps-active');
+                                    gpsBtn.innerHTML = '<i class="fas fa-location-arrow"></i> KONUMUMU TAKİP ET';
+                                },
+                                { 
+                                    enableHighAccuracy: true, // Yüksek doğruluk (GPS Donanımını zorla)
+                                    timeout: 10000,           // 10 saniye bekle
+                                    maximumAge: 0             // Eski veriyi kullanma, yenisini al
+                                } 
+                            );
+                        } else {
+                            alert("Tarayıcınız konum özelliğini desteklemiyor.");
+                        }
+                    } else {
+                        isGpsActive = false;
+                        navigator.geolocation.clearWatch(gpsWatchId);
+                        gpsBtn.classList.remove('gps-active');
+                        gpsBtn.innerHTML = '<i class="fas fa-location-arrow"></i> KONUMUMU TAKİP ET';
+                        userSource.clear();
+                        spiderSource.clear();
+                    }
+                });
+
+                // 5. ANALİZ FONKSİYONU
+                function runAnalysis(centerCoord) {
+                    spiderSource.clear();
+                    var targetLayer = null;
+                    try { targetLayer = lyr_ankaradurak_2; } catch(e) {}
+
+                    if (!targetLayer) return;
+
+                    var radarFeature = new ol.Feature(new ol.geom.Circle(centerCoord, currentMaxDist * 1.3)); 
+                    spiderSource.addFeature(radarFeature);
+
+                    var features = targetLayer.getSource().getFeatures();
+                    var foundCount = 0;
+                    var viewProjection = map.getView().getProjection();
+
+                    features.forEach(function(feature) {
+                        if (filterText !== "") {
+                            var allProps = JSON.stringify(feature.getProperties()).toLowerCase();
+                            if (!allProps.includes(filterText)) return;
+                        }
+
+                        var geometry = feature.getGeometry();
+                        var featureCoord = geometry.getCoordinates();
+                        var c1 = ol.proj.transform(centerCoord, viewProjection, 'EPSG:4326');
+                        var c2 = ol.proj.transform(featureCoord, viewProjection, 'EPSG:4326');
+                        var distance = ol.sphere.getDistance(c1, c2);
+
+                        if (distance <= currentMaxDist) {
+                            var lineGeom = new ol.geom.LineString([centerCoord, featureCoord]);
+                            var lineFeature = new ol.Feature({
+                                geometry: lineGeom,
+                                distance: distance 
+                            });
+                            spiderSource.addFeature(lineFeature);
+                            foundCount++;
+                        }
+                    });
+                    countLabel.innerHTML = foundCount;
+                }
+
+                map.on('pointermove', function(evt) {
+                    if (isFrozen || isGpsActive) return; 
+                    runAnalysis(evt.coordinate);
+                });
+
+                map.on('click', function(evt) {
+                    if (isGpsActive) return;
+                    isFrozen = !isFrozen; 
+                    if (isFrozen) {
+                        frozenCoord = evt.coordinate;
+                        freezeLabel.style.display = 'block'; 
+                        runAnalysis(frozenCoord); 
+                    } else {
+                        frozenCoord = null;
+                        freezeLabel.style.display = 'none'; 
+                        spiderSource.clear(); 
+                        countLabel.innerHTML = "0";
+                    }
+                });
+                
+                try { if (typeof lyr_ankaradurak_2 !== 'undefined') lyr_ankaradurak_2.setZIndex(1000); } catch(e) {}
+            });
+        </script>
+    </body>
+</html>
