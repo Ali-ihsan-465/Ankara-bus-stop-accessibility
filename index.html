@@ -84,7 +84,7 @@
         .legend-item { display: flex; align-items: center; margin-bottom: 3px; font-size: 10px; color: #ddd; }
         .legend-color { width: 15px; height: 8px; margin-right: 8px; border: 1px solid #777; }
 
-        /* --- YENİ SOL ALT BİLGİ BUTONU --- */
+        /* --- SOL ALT BİLGİ BUTONU --- */
         #help-btn {
             position: absolute;
             bottom: 25px;
@@ -107,38 +107,18 @@
         }
         #help-btn:hover { transform: scale(1.1); background-color: #555; }
 
-        /* --- BİLGİ PENCERESİ (MODAL) --- */
+        /* --- BİLGİ PENCERESİ --- */
         #help-modal {
-            display: none; /* Başlangıçta gizli */
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 85%;
-            max-width: 400px;
-            background-color: #fff;
-            color: #333;
-            padding: 20px;
-            border-radius: 10px;
-            z-index: 2000;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
-            font-size: 14px;
-            line-height: 1.6;
+            display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 85%; max-width: 400px; background-color: #fff; color: #333; padding: 20px;
+            border-radius: 10px; z-index: 2000; box-shadow: 0 0 20px rgba(0,0,0,0.5); font-size: 14px; line-height: 1.6;
         }
         #help-modal h2 { margin-top: 0; color: #2196F3; border-bottom: 2px solid #eee; padding-bottom: 10px; }
         #help-modal ul { padding-left: 20px; }
         #help-modal li { margin-bottom: 8px; }
-        .close-modal {
-            position: absolute; top: 10px; right: 15px; font-size: 20px; font-weight: bold; cursor: pointer; color: #999;
-        }
+        .close-modal { position: absolute; top: 10px; right: 15px; font-size: 20px; font-weight: bold; cursor: pointer; color: #999; }
         .close-modal:hover { color: #f00; }
-        
-        /* Arka plan karartma */
-        #modal-overlay {
-            display: none;
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.7); z-index: 1500;
-        }
+        #modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1500; }
 
         </style>
         <title>Ankara Durak Analizi</title>
@@ -166,7 +146,7 @@
                 <li><strong>📍 Sabitleme:</strong> Haritada bir yere tıklarsanız analiz orada donar. Tekrar tıklarsanız çözülür.</li>
             </ul>
             <div style="text-align:center; margin-top:15px; font-size:12px; color:#666;">
-                Tasarım: Ankara Ulaşım Analizi v2.0
+                Tasarım: Ankara Ulaşım Analizi v2.1
             </div>
         </div>
 
@@ -226,7 +206,7 @@
                 var gpsWatchId = null;
                 var userLocationCoord = null;
 
-                // MODAL (BİLGİ PENCERESİ) İŞLEMLERİ
+                // MODAL İŞLEMLERİ
                 var helpBtn = document.getElementById('help-btn');
                 var helpModal = document.getElementById('help-modal');
                 var overlay = document.getElementById('modal-overlay');
@@ -322,7 +302,7 @@
                     else if(isFrozen && frozenCoord) runAnalysis(frozenCoord);
                 });
 
-                // 4. GELİŞTİRİLMİŞ GPS FONKSİYONU
+                // 4. GPS
                 gpsBtn.addEventListener('click', function() {
                     if (!isGpsActive) {
                         if ("geolocation" in navigator) {
@@ -345,31 +325,24 @@
                                     gpsBtn.innerHTML = '<i class="fas fa-satellite-dish"></i> TAKİP EDİLİYOR';
                                 },
                                 function(error) {
-                                    alert("HATA: Konum alınamadı.\n1. GPS'in açık olduğundan emin olun.\n2. Siteye 'Konum İzni' verdiğinizi kontrol edin.\n3. Güvenli bağlantı (HTTPS) kullanın.");
+                                    alert("GPS Hatası: Konum alınamadı.");
                                     isGpsActive = false;
                                     gpsBtn.classList.remove('gps-active');
                                     gpsBtn.innerHTML = '<i class="fas fa-location-arrow"></i> KONUMUMU TAKİP ET';
                                 },
-                                { 
-                                    enableHighAccuracy: true, // Yüksek doğruluk (GPS Donanımını zorla)
-                                    timeout: 10000,           // 10 saniye bekle
-                                    maximumAge: 0             // Eski veriyi kullanma, yenisini al
-                                } 
+                                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 } 
                             );
-                        } else {
-                            alert("Tarayıcınız konum özelliğini desteklemiyor.");
-                        }
+                        } else { alert("GPS Desteklenmiyor"); }
                     } else {
                         isGpsActive = false;
                         navigator.geolocation.clearWatch(gpsWatchId);
                         gpsBtn.classList.remove('gps-active');
                         gpsBtn.innerHTML = '<i class="fas fa-location-arrow"></i> KONUMUMU TAKİP ET';
-                        userSource.clear();
-                        spiderSource.clear();
+                        userSource.clear(); spiderSource.clear();
                     }
                 });
 
-                // 5. ANALİZ FONKSİYONU
+                // 5. ANALİZ FONKSİYONU (TEKİLLEŞTİRME EKLENDİ)
                 function runAnalysis(centerCoord) {
                     spiderSource.clear();
                     var targetLayer = null;
@@ -383,6 +356,9 @@
                     var features = targetLayer.getSource().getFeatures();
                     var foundCount = 0;
                     var viewProjection = map.getView().getProjection();
+                    
+                    // TEKİLLEŞTİRME KÜMESİ (YENİ EKLENDİ)
+                    var processedCoords = new Set(); 
 
                     features.forEach(function(feature) {
                         if (filterText !== "") {
@@ -392,18 +368,27 @@
 
                         var geometry = feature.getGeometry();
                         var featureCoord = geometry.getCoordinates();
+                        
+                        // Koordinatı metne çevirip anahtar yap
+                        var coordKey = featureCoord.toString();
+
                         var c1 = ol.proj.transform(centerCoord, viewProjection, 'EPSG:4326');
                         var c2 = ol.proj.transform(featureCoord, viewProjection, 'EPSG:4326');
                         var distance = ol.sphere.getDistance(c1, c2);
 
                         if (distance <= currentMaxDist) {
-                            var lineGeom = new ol.geom.LineString([centerCoord, featureCoord]);
-                            var lineFeature = new ol.Feature({
-                                geometry: lineGeom,
-                                distance: distance 
-                            });
-                            spiderSource.addFeature(lineFeature);
-                            foundCount++;
+                            // Eğer bu koordinat daha önce sayılmadıysa işlem yap
+                            if (!processedCoords.has(coordKey)) {
+                                processedCoords.add(coordKey); // Kümeye ekle
+                                
+                                var lineGeom = new ol.geom.LineString([centerCoord, featureCoord]);
+                                var lineFeature = new ol.Feature({
+                                    geometry: lineGeom,
+                                    distance: distance 
+                                });
+                                spiderSource.addFeature(lineFeature);
+                                foundCount++;
+                            }
                         }
                     });
                     countLabel.innerHTML = foundCount;
