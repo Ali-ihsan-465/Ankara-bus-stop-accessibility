@@ -31,4 +31,4 @@ Bu proje, QGIS ve Web Teknolojileri kullanılarak geliştirilmiş olup aşağıd
 4.  Sağ üstteki panelden mesafe ayarını değiştirin veya otobüs hattı arayın.
 
 ---
-*Geliştirici: [Senin Adın]*
+*Geliştirici: [ALİ]*
